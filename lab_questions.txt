@@ -1,0 +1,16 @@
+
+1.
+Not sure how to make this in a recursive way:
+power2 :: Integer -> Integer -> Integer
+power2 n 0             = 1
+power2 n k | even k    = (n^2)^(k `div` 2) -- * power2 n (k-1)
+           | odd k     = n*(n^(k-1)) -- * power2 n (k-1)
+           | otherwise = error "Negative exponent not supported"
+
+
+2.
+We feel like the tests dont do justice for testing negative numbers. How do we test negative numbers?:
+prop_powers n k = power n k' == power1 n k'
+   where k' = abs k
+
+It feels like we arent really testing negative numbers which is what we think should be done with the cases.
