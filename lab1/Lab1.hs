@@ -32,7 +32,7 @@ power1 n k | k > 0     = product [ n | l <- [1..k] ]
 
 power2 :: Integer -> Integer -> Integer
 power2 n 0             = 1
-power2 n k | even k    = (n * n) * power2 n (k `div` 2)
+power2 n k | even k    = power2 (n * n) (k `div` 2)
            | odd k     = n * power2 n (k-1)
            | otherwise = error "Negative exponent not supported"
 
