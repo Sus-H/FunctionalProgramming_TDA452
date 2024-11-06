@@ -1,9 +1,11 @@
 {- Lab 1
-   Date: 
-   Authors:
-   Lab group:
+   Date: 6/11 -2024
+   Authors: Susanne On Huang, Paulina Palmberg
+   Lab group: 7
  -}
 --------------------------------------------
+import Test.QuickCheck
+
 power :: Integer -> Integer -> Integer
 power n k
    | k < 0 = error "Negative exponent not supported"
@@ -40,18 +42,23 @@ power2 n k | even k    = power2 (n * n) (k `div` 2)
 {- 
 
 <Describe your test cases here>
-   case 1: test with a negative number
-   case 2: test with a zero
-   case 3: test with a positive number greater than 0
+   Well behaved test cases:
+   case 1: test with a zero
+   case 2: test with an even positive k greater than 0
+   case 2: test with an odd positive k greater than 0
+   These are cases that will cover the different cases in the function definitions.
  -}
 
 -- 
-prop_powers n k = power n k' == power1 n k'
+prop_powers :: Integer -> Integer -> Bool
+prop_powers n k = power n k' == power1 n k' 
+              && power1 n k' == power2 n k' 
+              && power2 n k' == power n k'
    where k' = abs k
 
 --
 powerTest :: Bool
-powerTest = undefined
+powerTest = and [prop_powers n k | (n,k) <- [(1,0), (2,2), (2,3)]]
 
 --
 prop_powers' = undefined
