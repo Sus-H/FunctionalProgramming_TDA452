@@ -60,6 +60,3 @@ prop_powers n k = power n k' == power1 n k'
 --
 powerTest :: Bool
 powerTest = and [prop_powers n k | (n,k) <- [(1,0), (2,2), (2,3)]]
-
---
-prop_powers' = undefined
