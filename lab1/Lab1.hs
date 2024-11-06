@@ -46,7 +46,8 @@ power2 n k | even k    = power2 (n * n) (k `div` 2)
    case 1: test with a zero
    case 2: test with an even positive k greater than 0
    case 2: test with an odd positive k greater than 0
-   These are cases that will cover the different cases in the function definitions.
+   These are cases that will cover the different cases 
+   in the function definitions.
  -}
 
 -- 
