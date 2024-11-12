@@ -29,8 +29,8 @@ valueRank _           = 10
 -- The final value of a hand assuming the right value for Ace (1 or 11)
 value :: Hand -> Integer
 value Empty = 0
-value (Add c h) | initialvalue (Add c h) > 21 = initialvalue (Add c h) - (numberOfAces (Add c h) * 10)
-                | otherwise = initialvalue (Add c h)
+value h | initialvalue h > 21 = initialvalue h - (numberOfAces h * 10)
+                | otherwise = initialvalue h
 
 -- Determines if the value of Ace sould be 1 or 11
 -- valueOfAce :: Hand -> Integer (to make it clearer for us)
@@ -39,5 +39,14 @@ numberOfAces Empty = 0
 numberOfAces (Add c h) | rank c == Ace = 1 + numberOfAces h
                        | otherwise = 0 + numberOfAces h
 
+-- Check if a hand is bust, over 21 points
 gameOver :: Hand -> Bool
-gameOver (Add c h) = value (Add c h) > 21 
+gameOver h = value h > 21
+
+-- Check who is the winner given hand for bank and guest
+winner :: Hand -> Hand -> Player
+winner bankHand guestHand | gameOver bankHand && gameOver guestHand = Bank
+                          | gameOver bankHand = Guest
+                          | gameOver guestHand = Bank
+                          | value bankHand >= value guestHand = Bank
+                          | otherwise = Guest
