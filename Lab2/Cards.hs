@@ -73,9 +73,14 @@ instance Arbitrary StdGen where
 -- This creates a hand with 2 cards (2 Hearts & Jack Spades)
 hand2 = Add (Card (Numeric 2) Hearts)
             (Add (Card Jack Spades) Empty)
+
 hand3 = Add (Card (Numeric 2) Hearts)(Add
             (Card Jack Spades)(Add 
             (Card Ace Hearts) Empty))
+
+hand4 = Add (Card King Hearts)(Add
+            (Card Jack Spades)(Add 
+            (Card Queen Hearts) Empty))
 
 card5 = Card Jack Hearts
 card6 = Card (Numeric 5) Clubs

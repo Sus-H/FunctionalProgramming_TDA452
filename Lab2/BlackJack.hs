@@ -38,3 +38,6 @@ numberOfAces :: Hand -> Integer
 numberOfAces Empty = 0
 numberOfAces (Add c h) | rank c == Ace = 1 + numberOfAces h
                        | otherwise = 0 + numberOfAces h
+
+gameOver :: Hand -> Bool
+gameOver (Add c h) = value (Add c h) > 21 
