@@ -2,7 +2,7 @@ module BlackJack where
 
 import Cards
 import RunGame
-import Test.QuickCheck
+-- import Test.QuickCheck
 
 -- Display a card in the form of RANK OF SUIT
 displayCard :: Card -> String
@@ -45,8 +45,19 @@ gameOver h = value h > 21
 
 -- Check who is the winner given hand for bank and guest
 winner :: Hand -> Hand -> Player
-winner bankHand guestHand | gameOver bankHand && gameOver guestHand = Bank
-                          | gameOver bankHand = Guest
-                          | gameOver guestHand = Bank
-                          | value bankHand >= value guestHand = Bank
-                          | otherwise = Guest
+winner guestHand bankHand | gameOver bankHand && gameOver guestHand = Bank
+                          | gameOver bankHand                       = Guest
+                          | gameOver guestHand                      = Bank
+                          | value bankHand >= value guestHand       = Bank
+                          | otherwise                               = Guest
+
+hand2 :: Hand
+hand2 = Add (Card (Numeric 2) Hearts)
+            (Add (Card Jack Spades) Empty)
+
+sizeSteps :: [Integer]
+sizeSteps = [ size hand2
+            , size (Add (Card (Numeric 2) Hearts)
+                        (Add (Card Jack Spades) Empty))
+            -- ... add the remaining steps here
+            , 2]

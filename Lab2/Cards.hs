@@ -71,8 +71,8 @@ instance Arbitrary StdGen where
 -----------------
 
 -- This creates a hand with 2 cards (2 Hearts & Jack Spades)
-hand2 = Add (Card (Numeric 2) Hearts)
-            (Add (Card Jack Spades) Empty)
+-- hand2 = Add (Card (Numeric 2) Hearts)
+--             (Add (Card Jack Spades) Empty)
 
 hand3 = Add (Card (Numeric 2) Hearts)(Add
             (Card Jack Spades)(Add 
@@ -87,9 +87,9 @@ card6 = Card (Numeric 5) Clubs
 
 -- This functions check if the size function returns the right value
 -- which it does (we think)
-sizeSteps :: [Integer]
-sizeSteps = [ size hand2
-            , size (Add (Card (Numeric 2) Hearts)
-                        (Add (Card Jack Spades) Empty))
-            -- ... add the remaining steps here
-            , 2]
+-- sizeSteps :: [Integer]
+-- sizeSteps = [ size hand2
+--             , size (Add (Card (Numeric 2) Hearts)
+--                         (Add (Card Jack Spades) Empty))
+--             -- ... add the remaining steps here
+--             , 2]
