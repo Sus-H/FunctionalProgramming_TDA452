@@ -102,6 +102,26 @@ prop_onTopOf_assoc p1 p2 p3 = p1<+(p2<+p3) == (p1<+p2)<+p3
 prop_size_onTopOf :: Hand -> Hand -> Bool
 prop_size_onTopOf h1 h2 = size (h1 <+ h2) == size h1 + size h2
 
--- Function that returns full deck of Cards
+-- Function that returns a hand with a full deck of Cards
 fulldeck :: Hand
-fulldeck = undefined
+fulldeck = foldr Add Empty deck
+   where deck = [Card r s | s <- suits, r <- ranks]
+         ranks = [Numeric n | n <- [2..10]] ++ [Jack, Queen, King, Ace]
+         suits = [Hearts, Spades, Diamonds, Clubs]
+
+-- Take one card from the deck and add to hand
+draw :: Hand -> Hand -> (Hand,Hand)
+draw Empty _ = error "draw: The deck is empty."
+draw (Add c deck) hand = (deck, Add c hand)
+
+-- Draw the hand for the bank
+playBank :: Hand -> Hand
+playBank bankHand | valueB == 0 = playBank(playBankHelper( playBankHelper(fulldeck bankHand)))
+                  | valueB < 16 = playBankHelper 
+                  | otherwise = bankHand
+   where valueB = value bankHand
+         deck = fulldeck
+
+playBankHelper :: Hand -> Hand
+playBankHelper deck hand = biggerHand
+    where (smallerDeck,biggerHand) = draw deck hand
