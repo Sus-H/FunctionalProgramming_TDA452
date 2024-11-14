@@ -2,7 +2,40 @@ module BlackJack where
 
 import Cards
 import RunGame
--- import Test.QuickCheck
+import Test.QuickCheck
+
+-- LAB 2A
+sizeSteps :: [Integer]
+sizeSteps = [ size hand2
+            , size (Add (Card (Numeric 2) Hearts)(Add (Card Jack Spades) Empty))
+            , 1 + (size (Add (Card Jack Spades) Empty))
+            , 1 + (1 + size Empty)
+            , 1 + 1 + 0
+            , 2]
+
+-- A hand containing 2 cards (1 of hearts & Queen of spades)
+hand1 :: Hand
+hand1 = Add (Card (Numeric 1) Hearts)
+            (Add (Card Queen Spades) Empty)
+
+-- A hand containing 2 cards (2 of hearts & Jack of spades)
+hand2 :: Hand
+hand2 = Add (Card (Numeric 2) Hearts)
+            (Add (Card Jack Spades) Empty)
+
+-- Hand containing 3 cards
+hand3 = Add (Card (Numeric 2) Hearts)(Add
+            (Card Jack Spades)(Add 
+            (Card Ace Hearts) Empty))
+
+-- Hand containing 3 cards
+hand4 = Add (Card King Hearts)(Add
+            (Card Jack Spades)(Add 
+            (Card Queen Hearts) Empty))
+
+-- Two cards, Jack of Hearts & 5 of Clubs
+card5 = Card Jack Hearts
+card6 = Card (Numeric 5) Clubs
 
 -- Display a card in the form of RANK OF SUIT
 displayCard :: Card -> String
@@ -51,14 +84,24 @@ winner guestHand bankHand | gameOver bankHand && gameOver guestHand = Bank
                           | value bankHand >= value guestHand       = Bank
                           | otherwise                               = Guest
 
-hand2 :: Hand
-hand2 = Add (Card (Numeric 2) Hearts)
-            (Add (Card Jack Spades) Empty)
+---------
+-- Lab 2B
 
-sizeSteps :: [Integer]
-sizeSteps = [ size hand2
-            , size (Add (Card (Numeric 2) Hearts)(Add (Card Jack Spades) Empty))
-            , 1 + (size (Add (Card Jack Spades) Empty))
-            , 1 + (1 + size Empty)
-            , 1 + 1 + 0
-            , 2]
+-- Combining two hands
+(<+) :: Hand -> Hand -> Hand
+(<+) Empty h2 = h2
+(<+) (Add c h) h2 = Add c (h <+ h2)
+
+-- Check if the cards are added in the right order
+-- ergo, h1 + (h2 + h3) == (h1 + h2) + h3
+prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool 
+prop_onTopOf_assoc p1 p2 p3 = p1<+(p2<+p3) == (p1<+p2)<+p3
+
+-- Check if the size of the combination of hand1 and hand2 is
+-- the same as the size of hand1 + hand2
+prop_size_onTopOf :: Hand -> Hand -> Bool
+prop_size_onTopOf h1 h2 = size (h1 <+ h2) == size h1 + size h2
+
+-- Function that returns full deck of Cards
+fulldeck :: Hand
+fulldeck = undefined
