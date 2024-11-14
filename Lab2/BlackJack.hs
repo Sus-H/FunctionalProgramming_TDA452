@@ -39,9 +39,8 @@ card6 = Card (Numeric 5) Clubs
 
 -- Display a card in the form of RANK OF SUIT
 displayCard :: Card -> String
-displayCard c | take 8 (show(rank c)) == "Numeric " 
-                 = drop 8 (show(rank c)) ++ " of " ++ show (suit c) ++ "\n"
-              | otherwise = show(rank c) ++ " of " ++ show (suit c) ++ "\n"
+displayCard (Card (Numeric n) s) = show n ++ " of " ++ show s ++ "\n"
+displayCard c = show(rank c) ++ " of " ++ show (suit c) ++ "\n"
 
 -- Display all cards in one hand
 display :: Hand -> String
