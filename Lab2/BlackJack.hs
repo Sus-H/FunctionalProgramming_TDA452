@@ -61,8 +61,9 @@ valueRank _           = 10
 -- The final value of a hand assuming the right value for Ace (1 or 11)
 value :: Hand -> Integer
 value Empty = 0
-value h | initialvalue h > 21 = initialvalue h - (numberOfAces h * 10)
-                | otherwise = initialvalue h
+value h | initValue > 21 = initValue - (numberOfAces h * 10)
+                | otherwise = initValue
+   where initValue = initialvalue h
 
 -- Determines if the value of Ace sould be 1 or 11
 -- valueOfAce :: Hand -> Integer (to make it clearer for us)
