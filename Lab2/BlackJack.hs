@@ -136,14 +136,14 @@ playBankHelper deck hand = (smallerDeck2, biggerHand2)
           (smallerDeck2,biggerHand2) = draw smallerDeck1 biggerHand1
 
 -- Shuffles the deck given a random number generator and a deck (hand)
-shuffleDeck :: StdGen -> Hand -> Hand
+shuffleDeck :: StdGen -> Hand -> Hand -> Hand
 --shuffleDeck g Empty = deckShuffled
-shuffleDeck g deckUnshuffled -- undefined --Add c deckShuffled och shuffleDeck j d
+shuffleDeck g deckUnshuffled deckShuffled -- undefined --Add c deckShuffled och shuffleDeck j d
       | (size deckUnshuffled) == 0 = deckShuffled
-      | otherwise                  = shuffleDeck j d
+      | otherwise                  = shuffleDeck j d (Add c deckShuffled)
             where (d,c) = nCard deckUnshuffled i
                   (i,j) = randomR (1,(size deckUnshuffled)) g
-                  deckShuffled = Add c deckShuffled
+                  -- deckShuffled = Add c deckShuffled
 
 nCard :: Hand -> Integer -> (Hand,Card)
 nCard deck randomNumber = nCardHelper deck Empty randomNumber
