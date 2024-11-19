@@ -3,6 +3,7 @@ module BlackJack where
 import Cards
 import RunGame
 import Test.QuickCheck
+import System.Random
 
 -- LAB 2A
 sizeSteps :: [Integer]
@@ -109,19 +110,64 @@ fulldeck = foldr Add Empty deck
          ranks = [Numeric n | n <- [2..10]] ++ [Jack, Queen, King, Ace]
          suits = [Hearts, Spades, Diamonds, Clubs]
 
--- Take one card from the deck and add to hand
+-- Take one card from the deck and add to a hand
+-- bank -> guest -> (bank,guest)
 draw :: Hand -> Hand -> (Hand,Hand)
 draw Empty _ = error "draw: The deck is empty."
 draw (Add c deck) hand = (deck, Add c hand)
 
 -- Draw the hand for the bank
+-- If hand is Empty => draw 2 cards
+-- If value of hand < 16 => draw one card
+-- If value of hand >= 16 => return complete hand
 playBank :: Hand -> Hand
-playBank bankHand | valueB == 0 = playBank(playBankHelper( playBankHelper(fulldeck bankHand)))
-                  | valueB < 16 = playBankHelper 
+playBank bankHand | valueB == 0 = playBank Empty
+                  | valueB < 16 = playBank(snd(draw sDeck bankHand))
                   | otherwise = bankHand
    where valueB = value bankHand
          deck = fulldeck
+         (sDeck,bHand) = playBankHelper deck Empty
+         
+-- A helper function that draws to cards
+-- Deck -> bankHand
+playBankHelper :: Hand -> Hand -> (Hand,Hand)
+playBankHelper deck hand = (smallerDeck2, biggerHand2)
+    where (smallerDeck1,biggerHand1) = draw deck hand
+          (smallerDeck2,biggerHand2) = draw smallerDeck1 biggerHand1
 
-playBankHelper :: Hand -> Hand
-playBankHelper deck hand = biggerHand
-    where (smallerDeck,biggerHand) = draw deck hand
+-- Shuffles the deck given a random number generator and a deck (hand)
+shuffleDeck :: StdGen -> Hand -> Hand
+--shuffleDeck g Empty = deckShuffled
+shuffleDeck g deckUnshuffled -- undefined --Add c deckShuffled och shuffleDeck j d
+      | (size deckUnshuffled) == 0 = deckShuffled
+      | otherwise                  = shuffleDeck j d
+            where (d,c) = nCard deckUnshuffled i
+                  (i,j) = randomR (1,(size deckUnshuffled)) g
+                  deckShuffled = Add c deckShuffled
+
+nCard :: Hand -> Integer -> (Hand,Card)
+nCard deck randomNumber = nCardHelper deck Empty randomNumber
+
+nCardHelper :: Hand -> Hand -> Integer -> (Hand,Card)
+nCardHelper Empty _ _ = error "Hand is empty"
+nCardHelper (Add c deckP1) deckP2 n 
+            | n == 1    = ((deckP2 <+ deckP1), c)
+            | otherwise = nCardHelper deckP1 (Add c deckP2) (n-1)
+
+prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool 
+prop_shuffle_sameCards = undefined
+-- prop_shuffle_sameCards g c h = c `belongsTo` h == c `belongsTo` shuffleDeck g h
+
+belongsTo :: Card -> Hand -> Bool 
+c `belongsTo` Empty = False 
+c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
+
+prop_size_shuffle :: StdGen -> Hand -> Bool
+prop_size_shuffle = undefined
+
+
+-- Random number generator function of "rolling" two dice
+dieRoll :: StdGen -> (Integer,Integer)
+dieRoll g = (n1, n2)
+  where (n1, g1) = randomR (1,6) g
+        (n2, _ ) = randomR (1,6) g1
