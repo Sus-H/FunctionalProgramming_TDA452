@@ -9,7 +9,7 @@ import System.Random
 sizeSteps :: [Integer]
 sizeSteps = [ size hand2
             , size (Add (Card (Numeric 2) Hearts)(Add (Card Jack Spades) Empty))
-            , 1 + (size (Add (Card Jack Spades) Empty))
+            , 1 + size (Add (Card Jack Spades) Empty)
             , 1 + (1 + size Empty)
             , 1 + 1 + 0
             , 2]
@@ -25,17 +25,22 @@ hand2 = Add (Card (Numeric 2) Hearts)
             (Add (Card Jack Spades) Empty)
 
 -- Hand containing 3 cards
+hand3 :: Hand
 hand3 = Add (Card (Numeric 2) Hearts)(Add
             (Card Jack Spades)(Add 
             (Card Ace Hearts) Empty))
 
 -- Hand containing 3 cards
+hand4 :: Hand
 hand4 = Add (Card King Hearts)(Add
             (Card Jack Spades)(Add 
             (Card Queen Hearts) Empty))
 
 -- Two cards, Jack of Hearts & 5 of Clubs
+card5 :: Card
 card5 = Card Jack Hearts
+
+card6 :: Card
 card6 = Card (Numeric 5) Clubs
 
 -- Display a card in the form of RANK OF SUIT
@@ -100,8 +105,8 @@ prop_size_onTopOf :: Hand -> Hand -> Bool
 prop_size_onTopOf h1 h2 = size (h1 <+ h2) == size h1 + size h2
 
 -- Function that returns a hand with a full deck of Cards
-fulldeck :: Hand
-fulldeck = foldr Add Empty deck
+fullDeck :: Hand
+fullDeck = foldr Add Empty deck
    where deck = [Card r s | s <- suits, r <- ranks]
          ranks = [Numeric n | n <- [2..10]] ++ [Jack, Queen, King, Ace]
          suits = [Hearts, Spades, Diamonds, Clubs]
@@ -135,20 +140,21 @@ shuffleDeck g deck = shuffleDeckHelper g deck Empty
 -- Helper to shuffleDeck that takes care of the heavy functionality
 shuffleDeckHelper :: StdGen -> Hand -> Hand -> Hand
 shuffleDeckHelper g deckUnshuffled deckShuffled
-      | (size deckUnshuffled) == 0 = deckShuffled
+      | size deckUnshuffled == 0 = deckShuffled
       | otherwise                  = shuffleDeckHelper j d (Add c deckShuffled)
             where (d,c) = nCard deckUnshuffled i
-                  (i,j) = randomR (1,(size deckUnshuffled)) g
+                  (i,j) = randomR (1, size deckUnshuffled) g
 
--- Given a number, separate that card from the dech (hand)
+-- Given a number, separate that card from the deck (hand)
 -- and return the deck with remaining cards and the separated card
 nCard :: Hand -> Integer -> (Hand,Card)
 nCard deck randomNumber = nCardHelper deck Empty randomNumber
 
 -- Helper to nCard, where the main funcionality is done
 nCardHelper :: Hand -> Hand -> Integer -> (Hand,Card)
+nCardHelper Empty _ _ = error "deck is empty and cannot draw cards"
 nCardHelper (Add c deckP1) deckP2 n 
-            | n == 1    = ((deckP2 <+ deckP1), c)
+            | n == 1    = (deckP2 <+ deckP1, c)
             | otherwise = nCardHelper deckP1 (Add c deckP2) (n-1)
 
 prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool 
@@ -161,8 +167,9 @@ c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
 prop_size_shuffle :: StdGen -> Hand -> Bool
 prop_size_shuffle g h = size h == size (shuffleDeck g h)
 
+implementation :: Interface
 implementation = Interface
-  { iFullDeck = fulldeck
+  { iFullDeck = fullDeck
   , iValue    = value
   , iDisplay  = display
   , iGameOver = gameOver
