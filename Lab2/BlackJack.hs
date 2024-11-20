@@ -67,7 +67,6 @@ value h | initValue > 21 = initValue - (numberOfAces h * 10)
    where initValue = initialvalue h
 
 -- Determines if the value of Ace sould be 1 or 11
--- valueOfAce :: Hand -> Integer (to make it clearer for us)
 numberOfAces :: Hand -> Integer
 numberOfAces Empty = 0
 numberOfAces (Add c h) | rank c == Ace = 1 + numberOfAces h
@@ -85,16 +84,13 @@ winner guestHand bankHand | gameOver bankHand && gameOver guestHand = Bank
                           | value bankHand >= value guestHand       = Bank
                           | otherwise                               = Guest
 
----------
 -- Lab 2B
-
 -- Combining two hands
 (<+) :: Hand -> Hand -> Hand
 (<+) Empty h2 = h2
 (<+) (Add c h) h2 = Add c (h <+ h2)
 
 -- Check if the cards are added in the right order
--- ergo, h1 + (h2 + h3) == (h1 + h2) + h3
 prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool 
 prop_onTopOf_assoc p1 p2 p3 = p1<+(p2<+p3) == (p1<+p2)<+p3
 
@@ -111,63 +107,70 @@ fulldeck = foldr Add Empty deck
          suits = [Hearts, Spades, Diamonds, Clubs]
 
 -- Take one card from the deck and add to a hand
--- bank -> guest -> (bank,guest)
+-- Input deck and guest hands and return (deck,guest)
 draw :: Hand -> Hand -> (Hand,Hand)
 draw Empty _ = error "draw: The deck is empty."
 draw (Add c deck) hand = (deck, Add c hand)
 
--- Draw the hand for the bank
--- If hand is Empty => draw 2 cards
--- If value of hand < 16 => draw one card
--- If value of hand >= 16 => return complete hand
+-- Draws the hand for the bank
+-- It continues to draw until value is greater than 16
 playBank :: Hand -> Hand
-playBank bankHand | valueB == 0 = playBank Empty
-                  | valueB < 16 = playBank(snd(draw sDeck bankHand))
-                  | otherwise = bankHand
-   where valueB = value bankHand
-         deck = fulldeck
-         (sDeck,bHand) = playBankHelper deck Empty
-         
--- A helper function that draws to cards
--- Deck -> bankHand
-playBankHelper :: Hand -> Hand -> (Hand,Hand)
-playBankHelper deck hand = (smallerDeck2, biggerHand2)
-    where (smallerDeck1,biggerHand1) = draw deck hand
-          (smallerDeck2,biggerHand2) = draw smallerDeck1 biggerHand1
+playBank deck = bankHandHelper deck Empty
 
--- Shuffles the deck given a random number generator and a deck (hand)
-shuffleDeck :: StdGen -> Hand -> Hand -> Hand
---shuffleDeck g Empty = deckShuffled
-shuffleDeck g deckUnshuffled deckShuffled -- undefined --Add c deckShuffled och shuffleDeck j d
+bankHandHelper :: Hand -> Hand -> Hand
+bankHandHelper deck bankHand | valueB < 16 = bankHandHelper sDeck bHand
+                             | otherwise = bankHand
+   where valueB = value bankHand
+         (sDeck,bHand) = playBankHelper deck bankHand
+
+-- A helper function that draws to cards
+playBankHelper :: Hand -> Hand -> (Hand,Hand)
+playBankHelper deck hand = (smallerDeck, biggerHand)
+    where (smallerDeck,biggerHand) = draw deck hand
+
+-- -- Shuffles the deck given a random number generator and a deck (hand)
+shuffleDeck :: StdGen -> Hand -> Hand
+shuffleDeck g deck = shuffleDeckHelper g deck Empty
+
+-- Helper to shuffleDeck that takes care of the heavy functionality
+shuffleDeckHelper :: StdGen -> Hand -> Hand -> Hand
+shuffleDeckHelper g deckUnshuffled deckShuffled
       | (size deckUnshuffled) == 0 = deckShuffled
-      | otherwise                  = shuffleDeck j d (Add c deckShuffled)
+      | otherwise                  = shuffleDeckHelper j d (Add c deckShuffled)
             where (d,c) = nCard deckUnshuffled i
                   (i,j) = randomR (1,(size deckUnshuffled)) g
-                  -- deckShuffled = Add c deckShuffled
 
+-- Given a number, separate that card from the dech (hand)
+-- and return the deck with remaining cards and the separated card
 nCard :: Hand -> Integer -> (Hand,Card)
 nCard deck randomNumber = nCardHelper deck Empty randomNumber
 
+-- Helper to nCard, where the main funcionality is done
 nCardHelper :: Hand -> Hand -> Integer -> (Hand,Card)
-nCardHelper Empty _ _ = error "Hand is empty"
 nCardHelper (Add c deckP1) deckP2 n 
             | n == 1    = ((deckP2 <+ deckP1), c)
             | otherwise = nCardHelper deckP1 (Add c deckP2) (n-1)
 
 prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool 
-prop_shuffle_sameCards = undefined
--- prop_shuffle_sameCards g c h = c `belongsTo` h == c `belongsTo` shuffleDeck g h
+prop_shuffle_sameCards g c h = c `belongsTo` h == c `belongsTo` shuffleDeck g h
 
 belongsTo :: Card -> Hand -> Bool 
 c `belongsTo` Empty = False 
 c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
 
 prop_size_shuffle :: StdGen -> Hand -> Bool
-prop_size_shuffle = undefined
+prop_size_shuffle g h = size h == size (shuffleDeck g h)
 
+implementation = Interface
+  { iFullDeck = fulldeck
+  , iValue    = value
+  , iDisplay  = display
+  , iGameOver = gameOver
+  , iWinner   = winner 
+  , iDraw     = draw
+  , iPlayBank = playBank
+  , iShuffle  = shuffleDeck
+  }
 
--- Random number generator function of "rolling" two dice
-dieRoll :: StdGen -> (Integer,Integer)
-dieRoll g = (n1, n2)
-  where (n1, g1) = randomR (1,6) g
-        (n2, _ ) = randomR (1,6) g1
+main :: IO () 
+main = runGame implementation
