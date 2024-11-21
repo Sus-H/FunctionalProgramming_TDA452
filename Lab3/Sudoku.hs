@@ -36,7 +36,8 @@ example =
 
 -- | allBlankSudoku is a sudoku with just blanks
 allBlankSudoku :: Sudoku
-allBlankSudoku = undefined
+allBlankSudoku = Sudoku [[Nothing | x <- [1..9]] | y <- [1..9]]
+
 
 -- * A2
 
