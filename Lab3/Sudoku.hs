@@ -1,6 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
+import Data.Maybe(isJust, isNothing)
 
 ------------------------------------------------------------------------------
 
@@ -38,13 +39,24 @@ example =
 allBlankSudoku :: Sudoku
 allBlankSudoku = Sudoku [[Nothing | x <- [1..9]] | y <- [1..9]]
 
-
 -- * A2
 
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku = undefined
+isSudoku sud = all (==True) [boardRows sud, rowLength sud]
+      where  
+        -- checks if number of rows is 9
+        boardRows sud = length (rows sud) == 9
+        
+        -- check if number of elements in rows are 9
+        rowLength sud = 
+          all (==True) [length sudRows == 9 
+                        && all (==True) (cellType sudRows) 
+                        | sudRows <- rows sud]
+
+        -- check if cells contains "Nothing" or "just _"
+        cellType sudRows = [isNothing(c) || isJust(c) | c <- sudRows]
 
 -- * A3
 
