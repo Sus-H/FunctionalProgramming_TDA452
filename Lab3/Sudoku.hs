@@ -3,6 +3,7 @@ module Sudoku where
 import Test.QuickCheck
 import Data.Maybe(isJust, isNothing, fromJust)
 import Data.Char
+import Data.List(transpose)
 
 ------------------------------------------------------------------------------
 
@@ -136,17 +137,37 @@ prop_Sudoku sud = isSudoku sud == True
 
 type Block = [Cell] -- a Row is also a Cell
 
-
 -- * D1
 
 isOkayBlock :: Block -> Bool
-isOkayBlock = undefined
-
-
+isOkayBlock block = length newBlock == length (nub newBlock)
+  where
+    newBlock = [c | c <- block, isJust c]
+    
 -- * D2
 
 blocks :: Sudoku -> [Block]
-blocks = undefined
+blocks sud = blockRows ++ blockColumns ++ blocks
+  where
+    blockRows    = rows sud
+    blockColumns = transpose $ rows sud
+    blocks = 
+
+    (topRows, restRows) = splitAt 3 $ rows sud
+    (topLeft, restTopRight) = splitAt 3 (transpose topRows)
+    (topMiddle, topRight)  = splitAt 3 restTopRight
+    box1 = concat topLeft
+    box2 = concat topMiddle
+
+    (middleRows, bottomRows) = splitAt 3 restRows
+    
+    (middleLeft, restMiddleRight) = splitAt 3 (transpose middleRows)
+    (middle, middleRight)  = splitAt 3 restMiddleRight
+
+    (bottomLeft, restBottomRight) = splitAt 3 (transpose bottomRows)
+    (bottomMiddle, bottomRight)  = splitAt 3 restBottomRight
+    
+
 
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths = undefined
