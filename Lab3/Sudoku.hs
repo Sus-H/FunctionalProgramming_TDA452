@@ -3,7 +3,7 @@ module Sudoku where
 import Test.QuickCheck
 import Data.Maybe(isJust, isNothing, fromJust)
 import Data.Char
-import Data.List(transpose)
+import Data.List
 
 ------------------------------------------------------------------------------
 
@@ -151,32 +151,40 @@ blocks sud = blockRows ++ blockColumns ++ blocks
   where
     blockRows    = rows sud
     blockColumns = transpose $ rows sud
-    blocks = 
+    blocks = map concat [topLeft,    topMiddle,    topRight,
+                         middleLeft, middle,       middleRight,
+                         bottomLeft, bottomMiddle, bottomRight]
 
-    (topRows, restRows) = splitAt 3 $ rows sud
-    (topLeft, restTopRight) = splitAt 3 (transpose topRows)
-    (topMiddle, topRight)  = splitAt 3 restTopRight
-    box1 = concat topLeft
-    box2 = concat topMiddle
-
-    (middleRows, bottomRows) = splitAt 3 restRows
+    (topRows, restRows) = split' $ rows sud
+    (topLeft, restTopRight) = split' (transpose topRows)
+    (topMiddle, topRight)  = split' restTopRight
     
-    (middleLeft, restMiddleRight) = splitAt 3 (transpose middleRows)
-    (middle, middleRight)  = splitAt 3 restMiddleRight
-
-    (bottomLeft, restBottomRight) = splitAt 3 (transpose bottomRows)
-    (bottomMiddle, bottomRight)  = splitAt 3 restBottomRight
+    (middleRows, bottomRows) = split' restRows
     
+    (middleLeft, restMiddleRight) = split' (transpose middleRows)
+    (middle, middleRight)  = split' restMiddleRight
+    
+    (bottomLeft, restBottomRight) = split' (transpose bottomRows)
+    (bottomMiddle, bottomRight)  = split' restBottomRight
 
+    split' :: [Row] -> ([Row],[Row])
+    split' = splitAt 3
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths = undefined
+prop_blocks_lengths sud = length allBlocks == 27 && eachBlock
+  where
+    eachBlock = all (==True) [length b == 9 | b <- allBlocks]
+    allBlocks = blocks sud
+
+-- isOkayBlock :: Block -> Bool
+-- isOkayBlock block = length newBlock == length (nub newBlock)
+--   where
+--     newBlock = [c | c <- block, isJust c]
 
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay = undefined
-
+isOkay sud = all (==True) [isOkayBlock b | b <- blocks sud]
 
 ---- Part A ends here --------------------------------------------------------
 ------------------------------------------------------------------------------
