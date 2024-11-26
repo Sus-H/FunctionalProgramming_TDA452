@@ -1,7 +1,8 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.Maybe(isJust, isNothing)
+import Data.Maybe(isJust, isNothing, fromJust)
+import Data.Char
 
 ------------------------------------------------------------------------------
 
@@ -33,6 +34,10 @@ example =
     n = Nothing
     j = Just
 
+-- A sample sudoku where all entries are a 1
+tester :: Sudoku
+tester = Sudoku [[Just 1 | x <- [1..9]] | y <- [1..9]]
+
 -- * A1
 
 -- | allBlankSudoku is a sudoku with just blanks
@@ -63,7 +68,9 @@ isSudoku sud = all (==True) [boardRows sud, rowLength sud]
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled = undefined
+isFilled sud = checkboard
+  where checkboard = all (==True) [all (==True) (checkRow r) | r <- rows sud]
+        checkRow row = [isJust(c) | c <- row]
 
 ------------------------------------------------------------------------------
 
@@ -72,7 +79,12 @@ isFilled = undefined
 -- | printSudoku sud prints a nice representation of the sudoku sud on
 -- the screen
 printSudoku :: Sudoku -> IO ()
-printSudoku = undefined
+printSudoku sud = do
+  putStrLn (concat (concat board))
+  where
+    board = [cell row ++ ["\n"] | row <- rows sud]
+    cell row = [if isJust(c) then show(fromJust(c)) else ['.'] | c <- row ]
+
 
 -- * B2
 
@@ -80,6 +92,17 @@ printSudoku = undefined
 -- if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
 readSudoku = undefined
+-- readSudoku path = do
+--   sud <- readFile path
+--   let rowsOfStrings = lines sud
+--   return result
+--   where
+--       rowStrings rowsOfStrings = rowsOfStrings
+--       board = Sudoku [sudRows rowString | rowString <- rowStrings]
+--       sudRows rowString = [if c == '.' then Nothing else Just (digitToInt c) | c <- rowString ]
+--       result | isSudoku board == True = board
+--              | otherwise = error "Not a Sudoku!"
+
 
 ------------------------------------------------------------------------------
 
@@ -87,21 +110,26 @@ readSudoku = undefined
 
 -- | cell generates an arbitrary cell in a Sudoku
 cell :: Gen (Cell)
-cell = undefined
-
+cell = frequency [(1, cellNumber),(9, return Nothing)]
+    where
+      cellNumber = do
+        n <- choose(1,9)
+        return $ Just n
 
 -- * C2
 
 -- | an instance for generating Arbitrary Sudokus
 instance Arbitrary Sudoku where
-  arbitrary = undefined
+  arbitrary = do
+    s <- vectorOf 9 (vectorOf 9 cell)
+    return (Sudoku s)
 
  -- hint: get to know the QuickCheck function vectorOf
  
 -- * C3
 
 prop_Sudoku :: Sudoku -> Bool
-prop_Sudoku = undefined
+prop_Sudoku sud = isSudoku sud == True
   -- hint: this definition is simple!
   
 ------------------------------------------------------------------------------
