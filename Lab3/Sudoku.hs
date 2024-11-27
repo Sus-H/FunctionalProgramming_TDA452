@@ -61,8 +61,10 @@ isSudoku sud = all (==True) [boardRows sud, rowLength sud]
                         && all (==True) (cellType sudRows) 
                         | sudRows <- rows sud]
 
-        -- check if cells contains "Nothing" or "just _"
-        cellType sudRows = [isNothing(c) || isJust(c) | c <- sudRows]
+        -- check if cells contains "Nothing" or a number between 1 and 9
+        -- cellType sudRows = [isNothing c || fromJust c == b | c <- sudRows, b <- [1..9]]
+        cellType sudRows = [isNothing c || (getC c >= 1 && getC c <= 9) | c <- sudRows]
+        getC = fromJust
 
 -- * A3
 
@@ -71,7 +73,7 @@ isSudoku sud = all (==True) [boardRows sud, rowLength sud]
 isFilled :: Sudoku -> Bool
 isFilled sud = checkboard
   where checkboard = all (==True) [all (==True) (checkRow r) | r <- rows sud]
-        checkRow row = [isJust(c) | c <- row]
+        checkRow row = [isJust c | c <- row]
 
 ------------------------------------------------------------------------------
 
@@ -84,7 +86,7 @@ printSudoku sud = do
   putStrLn (concat (concat board))
   where
     board = [cell row ++ ["\n"] | row <- rows sud]
-    cell row = [if isJust(c) then show(fromJust(c)) else ['.'] | c <- row ]
+    cell row = [if isJust c then show(fromJust c) else ['.'] | c <- row ]
 
 
 -- * B2
@@ -92,25 +94,24 @@ printSudoku sud = do
 -- | readSudoku file reads from the file, and either delivers it, or stops
 -- if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
-readSudoku = undefined
--- readSudoku path = do
---   sud <- readFile path
---   let rowsOfStrings = lines sud
---   return result
---   where
---       rowStrings rowsOfStrings = rowsOfStrings
---       board = Sudoku [sudRows rowString | rowString <- rowStrings]
---       sudRows rowString = [if c == '.' then Nothing else Just (digitToInt c) | c <- rowString ]
---       result | isSudoku board == True = board
---              | otherwise = error "Not a Sudoku!"
-
+-- readSudoku = undefined
+readSudoku path = do
+  sud <- readFile path
+  let 
+    rowsOfStrings = lines sud
+    board = Sudoku [sudRows rowString | rowString <- rowsOfStrings]
+    sudRows rowString = [if c == '.' then Nothing else Just (digitToInt c) | c <- rowString ]
+    result | isSudoku board = board
+           | otherwise = error "Not a Sudoku!"
+    in return result
+    -- in printSudoku $ result
 
 ------------------------------------------------------------------------------
 
 -- * C1
 
 -- | cell generates an arbitrary cell in a Sudoku
-cell :: Gen (Cell)
+cell :: Gen Cell
 cell = frequency [(1, cellNumber),(9, return Nothing)]
     where
       cellNumber = do
@@ -130,7 +131,7 @@ instance Arbitrary Sudoku where
 -- * C3
 
 prop_Sudoku :: Sudoku -> Bool
-prop_Sudoku sud = isSudoku sud == True
+prop_Sudoku = isSudoku 
   -- hint: this definition is simple!
   
 ------------------------------------------------------------------------------
