@@ -50,20 +50,20 @@ allBlankSudoku = Sudoku [[Nothing | x <- [1..9]] | y <- [1..9]]
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku sud = all (==True) [boardRows sud, rowLength sud]
+isSudoku sud = and [boardRows sud, rowLength sud]
       where  
         -- checks if number of rows is 9
         boardRows sud = length (rows sud) == 9
         
         -- check if number of elements in rows are 9
         rowLength sud = 
-          all (==True) [length sudRows == 9 
-                        && all (==True) (cellType sudRows) 
+          and [length sudRows == 9 
+                        && and (cellType sudRows) 
                         | sudRows <- rows sud]
 
         -- check if cells contains "Nothing" or a number between 1 and 9
-        -- cellType sudRows = [isNothing c || fromJust c == b | c <- sudRows, b <- [1..9]]
-        cellType sudRows = [isNothing c || (getC c >= 1 && getC c <= 9) | c <- sudRows]
+        cellType sudRows = [isNothing c || 
+                           (getC c >= 1 && getC c <= 9) | c <- sudRows]
         getC = fromJust
 
 -- * A3
@@ -72,7 +72,7 @@ isSudoku sud = all (==True) [boardRows sud, rowLength sud]
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
 isFilled sud = checkboard
-  where checkboard = all (==True) [all (==True) (checkRow r) | r <- rows sud]
+  where checkboard = and [and (checkRow r) | r <- rows sud]
         checkRow row = [isJust c | c <- row]
 
 ------------------------------------------------------------------------------
@@ -100,7 +100,8 @@ readSudoku path = do
   let 
     rowsOfStrings = lines sud
     board = Sudoku [sudRows rowString | rowString <- rowsOfStrings]
-    sudRows rowString = [if c == '.' then Nothing else Just (digitToInt c) | c <- rowString ]
+    sudRows rowString = [if c == '.' then Nothing 
+                         else Just (digitToInt c) | c <- rowString ]
     result | isSudoku board = board
            | otherwise = error "Not a Sudoku!"
     in return result
@@ -148,44 +149,33 @@ isOkayBlock block = length newBlock == length (nub newBlock)
 -- * D2
 
 blocks :: Sudoku -> [Block]
-blocks sud = blockRows ++ blockColumns ++ blocks
+blocks sud = blockRows ++ blockColumns ++ squareBlocks
   where
     blockRows    = rows sud
     blockColumns = transpose $ rows sud
-    blocks = map concat [topLeft,    topMiddle,    topRight,
-                         middleLeft, middle,       middleRight,
-                         bottomLeft, bottomMiddle, bottomRight]
+    squareBlocks = map concat (concat [block topRows, 
+                                       block middleRows, 
+                                       block bottomRows])
 
-    (topRows, restRows) = split' $ rows sud
-    (topLeft, restTopRight) = split' (transpose topRows)
-    (topMiddle, topRight)  = split' restTopRight
-    
-    (middleRows, bottomRows) = split' restRows
-    
-    (middleLeft, restMiddleRight) = split' (transpose middleRows)
-    (middle, middleRight)  = split' restMiddleRight
-    
-    (bottomLeft, restBottomRight) = split' (transpose bottomRows)
-    (bottomMiddle, bottomRight)  = split' restBottomRight
+    (topRows, restRows) = splitAt 3 $ rows sud
+    (middleRows, bottomRows) = splitAt 3 restRows
 
-    split' :: [Row] -> ([Row],[Row])
-    split' = splitAt 3
+block :: [Row] -> [[Block]]
+block rowOfBlocks = [left, middle, right]
+  where
+    (left, restRight) = splitAt 3 (transpose rowOfBlocks)
+    (middle, right)  = splitAt 3 restRight
 
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sud = length allBlocks == 27 && eachBlock
   where
-    eachBlock = all (==True) [length b == 9 | b <- allBlocks]
+    eachBlock = and [length b == 9 | b <- allBlocks]
     allBlocks = blocks sud
-
--- isOkayBlock :: Block -> Bool
--- isOkayBlock block = length newBlock == length (nub newBlock)
---   where
---     newBlock = [c | c <- block, isJust c]
 
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay sud = all (==True) [isOkayBlock b | b <- blocks sud]
+isOkay sud = and [isOkayBlock b | b <- blocks sud]
 
 ---- Part A ends here --------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -193,31 +183,50 @@ isOkay sud = all (==True) [isOkayBlock b | b <- blocks sud]
 
 
 -- | Positions are pairs (row,column),
--- (0,0) is top left corner, (8,8) is bottom left corner
+-- (0,0) is top left corner, (8,8) is bottom right corner
 type Pos = (Int,Int)
 
 -- * E1
 
+posMatrix :: [(Int,Int)]
+posMatrix = [(a,b) | a <- [0..8], b <- [0..8]]
+
 blanks :: Sudoku -> [Pos]
-blanks = undefined
+blanks sud = positions
+  where
+    cells = concat $ rows sud
+    pairs = zip posMatrix cells
+    positions = [fst pair | pair <- pairs, isNothing (snd pair)]
 
---prop_blanks_allBlanks :: ...
---prop_blanks_allBlanks =
-
+prop_blanks_allBlanks :: Bool
+prop_blanks_allBlanks = blanks allBlankSudoku == posMatrix
 
 -- * E2
 
 (!!=) :: [a] -> (Int,a) -> [a]
-xs !!= (i,y) = undefined
+[] !!= _     = error "Empty List"
+xs !!= (i,y) = take (i) xs ++ [y] ++ drop (i+1) xs
 
---prop_bangBangEquals_correct :: ...
---prop_bangBangEquals_correct =
+-- prop_bangBangEquals_correct :: [Cell] -> (Int,Cell) -> Bool
+-- prop_bangBangEquals_correct [] _      = True
+-- prop_bangBangEquals_correct [a] (i,y) | i == 1 = [a] !!= (i,y) == [y]
+-- prop_bangBangEquals_correct l (i,y) | abs i >= length l  = False
+--                                     | otherwise         = 
+--                                       updated !! i == y
+--                                       && length updated == length l
+--   where
+--     updated = l !!= (i,y)
 
 
 -- * E3
 
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update = undefined
+update sud pos cell = Sudoku [take rIndex sudoku ++ updatedRow ++ drop (rIndex+1) sudoku]
+  where
+    row = sudoku !! rIndex
+    updatedRow = row !!= (snd pos, cell)
+    sudoku = rows sud
+    rIndex = fst pos
 
 --prop_update_updated :: ...
 --prop_update_updated =
