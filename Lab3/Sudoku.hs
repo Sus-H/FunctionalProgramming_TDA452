@@ -282,7 +282,6 @@ solve' sud (x:xs) | isOkay sud = maybeOkaySuds
                   | otherwise = []
   where
     maybeOkaySuds = concat [solve' (update sud x (Just n)) xs | n <- [1..9]]
-    -- maybeOkaySuds = concat [solve' s xs | s <- [update sud x (Just n) | n <- [1..9]]]
 
 
 -- * F2
