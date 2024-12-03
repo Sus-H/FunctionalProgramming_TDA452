@@ -1,7 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.Maybe(isJust, isNothing, fromJust)
+import Data.Maybe(isJust, isNothing, fromJust, listToMaybe)
 import Data.Char
 import Data.List
 
@@ -203,39 +203,68 @@ prop_blanks_allBlanks = blanks allBlankSudoku == posMatrix
 
 -- * E2
 
+-- Writes a cell to a position
 (!!=) :: [a] -> (Int,a) -> [a]
 [] !!= _     = error "Empty List"
 xs !!= (i,y) = take (i) xs ++ [y] ++ drop (i+1) xs
 
 -- prop_bangBangEquals_correct :: [Cell] -> (Int,Cell) -> Bool
 -- prop_bangBangEquals_correct [] _      = True
--- prop_bangBangEquals_correct [a] (i,y) | i == 1 = [a] !!= (i,y) == [y]
--- prop_bangBangEquals_correct l (i,y) | abs i >= length l  = False
---                                     | otherwise         = 
---                                       updated !! i == y
+-- prop_bangBangEquals_correct l (i,y) | length l == 1 = True
+-- prop_bangBangEquals_correct l (i,y) | abs i < length l  = updated !! i == y
 --                                       && length updated == length l
+--                                     | otherwise          = False
+                                      
 --   where
 --     updated = l !!= (i,y)
 
 
 -- * E3
 
+-- Updates a specific cell in a sudoku
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update sud pos cell = Sudoku [take rIndex sudoku ++ updatedRow ++ drop (rIndex+1) sudoku]
+update sud (a,b) c | a < 9 && b < 9 && a >= 0 && b >= 0 = 
+  Sudoku (take a sudoku ++ updatedRow ++ drop (a+1) sudoku)
+                   | otherwise = error "Not valid input"
   where
-    row = sudoku !! rIndex
-    updatedRow = row !!= (snd pos, cell)
+    -- sudoku is a [[rows]]
     sudoku = rows sud
-    rIndex = fst pos
+    -- row = get the row we want to update => [Row] = [[Cell]]
+    row = sudoku !! a
+    -- use our function to change 1 cell => [[Cell]]
+    updatedRow = [row !!= (b, c)]
 
---prop_update_updated :: ...
---prop_update_updated =
-
+-- Check that the sudoku is updated properly when using the function update
+-- prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
+-- prop_update_updated sud _     _ | isSudoku sud == False = False
+-- prop_update_updated sud (a,b) c | a >= 9 || a >= 9 = False
+--                                 | (abs (fromJust c)) > 9 && isJust c = False
+--                                 | otherwise = newCell == c
+  -- where
+  --   updated = update sud (a, b) c
+  --   sudoku = rows updated
+  --   rowUpdated = sudoku !! a
+  --   newCell = rowUpdated !! b
+  
 
 ------------------------------------------------------------------------------
 
 -- * F1
+solve :: Sudoku -> Maybe Sudoku
+solve unsolvedSud | isSudoku unsolvedSud == False = Nothing
+                  | unsolvedPos == [] = Nothing
+                  | otherwise = solve' unsolvedSud unsolvedPos
+  where
+    unsolvedPos = blanks unsolvedSud
 
+solve' :: Sudoku -> [Pos] -> Maybe Sudoku
+solve' sud [] = Just sud
+solve' sud posList = solve' okaySud newList
+  where
+    maybeOkaySuds = [update sud currentPos (Just n) | n <- [1..9]]
+    okaySud  = [ s | s <- maybeOkaySuds, isOkay s] !! 0
+    currentPos = head posList
+    newList = drop 1 posList
 
 -- * F2
 
