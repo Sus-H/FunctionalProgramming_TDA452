@@ -35,6 +35,23 @@ example =
     n = Nothing
     j = Just
 
+example2 :: Sudoku
+example2 =
+  Sudoku
+    [ [j 5, j 3, j 4, j 6, j 7, j 8, j 9, j 1, j 2]
+    , [j 6, j 7, j 2, j 1, j 9, j 5, j 3, j 4, j 8]
+    , [j 1, j 9, j 8, j 3, j 4, j 2, j 5, j 6, j 7]
+    , [j 8, j 5, j 9, j 7, j 6, j 1, j 4, j 2, j 3]
+    , [j 4, j 2, j 6, j 8, j 5, j 3, j 7, j 9, j 1]
+    , [j 7, j 1, j 3, j 9, j 2, j 4, j 8, j 5, j 6]
+    , [j 9, j 6, j 1, j 5, j 3, j 7, j 2, j 8,  n ]
+    , [j 2, j 8, j 7, j 4, j 1, j 9, j 6, j 3, j 5]
+    , [j 3, j 4, j 5, j 2, j 8, j 6, j 1, j 7, j 9]
+    ]
+    where
+      n = Nothing
+      j = Just
+
 -- A sample sudoku where all entries are a 1
 tester :: Sudoku
 tester = Sudoku [[Just 1 | x <- [1..9]] | y <- [1..9]]
@@ -206,17 +223,18 @@ prop_blanks_allBlanks = blanks allBlankSudoku == posMatrix
 -- Writes a cell to a position
 (!!=) :: [a] -> (Int,a) -> [a]
 [] !!= _     = error "Empty List"
-xs !!= (i,y) = take (i) xs ++ [y] ++ drop (i+1) xs
+xs !!= (i,y) | i >= length xs || i < 0 = error "Index out of bounds B)"
+             | otherwise = take (i) xs ++ [y] ++ drop (i+1) xs
 
--- prop_bangBangEquals_correct :: [Cell] -> (Int,Cell) -> Bool
--- prop_bangBangEquals_correct [] _      = True
--- prop_bangBangEquals_correct l (i,y) | length l == 1 = True
--- prop_bangBangEquals_correct l (i,y) | abs i < length l  = updated !! i == y
---                                       && length updated == length l
---                                     | otherwise          = False
-                                      
---   where
---     updated = l !!= (i,y)
+
+prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> Bool
+prop_bangBangEquals_correct [] _      = True
+prop_bangBangEquals_correct l (i,y) | i' < (length l) = 
+  updated !! i' == y && length updated == length l
+                                    | otherwise       = False                            
+  where
+    i' = abs i `mod` length l
+    updated = l !!= (i',y)
 
 
 -- * E3
@@ -235,16 +253,15 @@ update sud (a,b) c | a < 9 && b < 9 && a >= 0 && b >= 0 =
     updatedRow = [row !!= (b, c)]
 
 -- Check that the sudoku is updated properly when using the function update
--- prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
--- prop_update_updated sud _     _ | isSudoku sud == False = False
--- prop_update_updated sud (a,b) c | a >= 9 || a >= 9 = False
---                                 | (abs (fromJust c)) > 9 && isJust c = False
---                                 | otherwise = newCell == c
-  -- where
-  --   updated = update sud (a, b) c
-  --   sudoku = rows updated
-  --   rowUpdated = sudoku !! a
-  --   newCell = rowUpdated !! b
+prop_update_updated :: Sudoku -> Pos -> Maybe Int -> Bool
+prop_update_updated sud (a,b) c = newCell == c
+  where
+    a' = abs a `mod` 9
+    b' = abs b `mod` 9
+    updated = update sud (a', b') c
+    sudoku = rows updated
+    rowUpdated = sudoku !! a'
+    newCell = rowUpdated !! b'
   
 
 ------------------------------------------------------------------------------
@@ -252,19 +269,21 @@ update sud (a,b) c | a < 9 && b < 9 && a >= 0 && b >= 0 =
 -- * F1
 solve :: Sudoku -> Maybe Sudoku
 solve unsolvedSud | isSudoku unsolvedSud == False = Nothing
-                  | unsolvedPos == [] = Nothing
-                  | otherwise = solve' unsolvedSud unsolvedPos
+                  | otherwise = solved $ solve' unsolvedSud unsolvedPos
   where
     unsolvedPos = blanks unsolvedSud
+    solved []     = Nothing
+    solved (s:ss) = s
 
-solve' :: Sudoku -> [Pos] -> Maybe Sudoku
-solve' sud [] = Just sud
-solve' sud posList = solve' okaySud newList
+solve' :: Sudoku -> [Pos] -> [Maybe Sudoku]
+solve' sud [] | isOkay sud =  [Just sud]
+              | otherwise = []
+solve' sud (x:xs) | isOkay sud = maybeOkaySuds
+                  | otherwise = []
   where
-    maybeOkaySuds = [update sud currentPos (Just n) | n <- [1..9]]
-    okaySud  = [ s | s <- maybeOkaySuds, isOkay s] !! 0
-    currentPos = head posList
-    newList = drop 1 posList
+    maybeOkaySuds = concat [solve' (update sud x (Just n)) xs | n <- [1..9]]
+    -- maybeOkaySuds = concat [solve' s xs | s <- [update sud x (Just n) | n <- [1..9]]]
+
 
 -- * F2
 
