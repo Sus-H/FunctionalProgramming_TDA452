@@ -102,8 +102,8 @@ printSudoku :: Sudoku -> IO ()
 printSudoku sud = do
   putStrLn (concat (concat board))
   where
-    board = [cell row ++ ["\n"] | row <- rows sud]
-    cell row = [if isJust c then show(fromJust c) else ['.'] | c <- row ]
+    board = [cells row ++ ["\n"] | row <- rows sud]
+    cells row = [if isJust c then show(fromJust c) else ['.'] | c <- row ]
 
 
 -- * B2
