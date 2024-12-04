@@ -1,7 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.Maybe(isJust, isNothing, fromJust, listToMaybe)
+import Data.Maybe(isJust, isNothing, fromJust, listToMaybe, catMaybes)
 import Data.Char
 import Data.List
 
@@ -252,6 +252,13 @@ update sud (a,b) c | a < 9 && b < 9 && a >= 0 && b >= 0 =
     -- use our function to change 1 cell => [[Cell]]
     updatedRow = [row !!= (b, c)]
 
+sudIndex :: Sudoku -> Pos -> Cell
+sudIndex sud (a,b) = c
+  where
+    sudoku = rows sud
+    row = sudoku !! a
+    c = row !! b
+
 -- Check that the sudoku is updated properly when using the function update
 prop_update_updated :: Sudoku -> Pos -> Maybe Int -> Bool
 prop_update_updated sud (a,b) c = newCell == c
@@ -285,9 +292,26 @@ solve' sud (x:xs) | isOkay sud = maybeOkaySuds
 
 
 -- * F2
-
+readAndSolve :: FilePath -> IO ()
+readAndSolve filePath = do
+  sud <- readSudoku filePath
+  let solution = fromJust $ solve sud
+  printSudoku solution
 
 -- * F3
-
+isSolutionOf :: Sudoku -> Sudoku -> Bool
+isSolutionOf sud1 sud2 | isOkay sud1 && ((length $ blanks sud1) == 0) = isTrue
+  where
+    -- get a list of all positions in a sudoku
+    allEmpty = posMatrix 
+    -- get all blank pos in the sudoku
+    blankPositions = blanks sud2
+    -- keep all the non-empty pos form the sudoku
+    nonBlankPos = [filledPos | filledPos <- allEmpty, 
+                              not (filledPos `elem` blankPositions) ]
+    isTrue = and [if sudIndex sud1 t == sudIndex sud2 t then True else False 
+                  | t <- nonBlankPos]
 
 -- * F4
+prop_SolveSound :: Sudoku -> Property
+prop_SolveSound = undefined
