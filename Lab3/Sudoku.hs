@@ -314,4 +314,12 @@ isSolutionOf sud1 sud2 | isOkay sud1 && ((length $ blanks sud1) == 0) = isTrue
 
 -- * F4
 prop_SolveSound :: Sudoku -> Property
-prop_SolveSound = undefined
+prop_SolveSound sud = (isSudoku sud && isOkay sud) 
+                        ==> case solved of 
+                          Nothing -> True
+                          (Just s) -> isSolutionOf s sud 
+  where
+    solved = solve sud
+
+fewerChecks prop =
+  quickCheckWith stdArgs{maxSuccess=30 } prop
