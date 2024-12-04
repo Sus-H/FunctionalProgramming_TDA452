@@ -67,7 +67,7 @@ allBlankSudoku = Sudoku [[Nothing | x <- [1..9]] | y <- [1..9]]
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku sud = and [boardRows sud, rowLength sud]
+isSudoku sud = boardRows sud && rowLength sud
       where  
         -- checks if number of rows is 9
         boardRows sud = length (rows sud) == 9
@@ -224,12 +224,12 @@ prop_blanks_allBlanks = blanks allBlankSudoku == posMatrix
 (!!=) :: [a] -> (Int,a) -> [a]
 [] !!= _     = error "Empty List"
 xs !!= (i,y) | i >= length xs || i < 0 = error "Index out of bounds B)"
-             | otherwise = take (i) xs ++ [y] ++ drop (i+1) xs
+             | otherwise = take i xs ++ [y] ++ drop (i+1) xs
 
 
 prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> Bool
 prop_bangBangEquals_correct [] _      = True
-prop_bangBangEquals_correct l (i,y) | i' < (length l) = 
+prop_bangBangEquals_correct l (i,y) | i' < length l = 
   updated !! i' == y && length updated == length l
                                     | otherwise       = False                            
   where
@@ -243,7 +243,7 @@ prop_bangBangEquals_correct l (i,y) | i' < (length l) =
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update sud (a,b) c | a < 9 && b < 9 && a >= 0 && b >= 0 = 
   Sudoku (take a sudoku ++ updatedRow ++ drop (a+1) sudoku)
-                   | otherwise = error "Not valid input"
+                   | otherwise = error "Invalid input"
   where
     -- sudoku is a [[rows]]
     sudoku = rows sud
@@ -275,7 +275,7 @@ prop_update_updated sud (a,b) c = newCell == c
 
 -- * F1
 solve :: Sudoku -> Maybe Sudoku
-solve unsolvedSud | isSudoku unsolvedSud == False = Nothing
+solve unsolvedSud | not (isSudoku unsolvedSud) = Nothing
                   | otherwise = solved $ solve' unsolvedSud unsolvedPos
   where
     unsolvedPos = blanks unsolvedSud
@@ -300,7 +300,10 @@ readAndSolve filePath = do
 
 -- * F3
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf sud1 sud2 | isOkay sud1 && ((length $ blanks sud1) == 0) = isTrue
+isSolutionOf sud1 sud2 | isSudoku sud1 && isSudoku sud2 
+                        && isOkay sud1 && null (blanks sud1) = isTrue
+                       | otherwise = False
+                       
   where
     -- get a list of all positions in a sudoku
     allEmpty = posMatrix 
@@ -308,9 +311,8 @@ isSolutionOf sud1 sud2 | isOkay sud1 && ((length $ blanks sud1) == 0) = isTrue
     blankPositions = blanks sud2
     -- keep all the non-empty pos form the sudoku
     nonBlankPos = [filledPos | filledPos <- allEmpty, 
-                              not (filledPos `elem` blankPositions) ]
-    isTrue = and [if sudIndex sud1 t == sudIndex sud2 t then True else False 
-                  | t <- nonBlankPos]
+                               filledPos `notElem` blankPositions ]
+    isTrue = and [sudIndex sud1 t == sudIndex sud2 t | t <- nonBlankPos]
 
 -- * F4
 prop_SolveSound :: Sudoku -> Property
@@ -321,5 +323,6 @@ prop_SolveSound sud = (isSudoku sud && isOkay sud)
   where
     solved = solve sud
 
-fewerChecks prop =
-  quickCheckWith stdArgs{maxSuccess=30 } prop
+fewerChecks :: Testable prop => prop -> IO ()
+fewerChecks =
+  quickCheckWith stdArgs{maxSuccess=30 }
