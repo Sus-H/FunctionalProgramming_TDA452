@@ -1,6 +1,8 @@
 import Prelude hiding (sin,cos)
 import qualified Prelude as P
 
+import Parsing
+
 data Expr = Add Expr Expr 
           | Mul Expr Expr 
           | Sin Expr 
@@ -52,4 +54,11 @@ eval (Cos a) c = P.cos (eval a c)
 
 -- this does something I don't yet know what it is
 readExpr :: String -> Maybe Expr
-readExpr = undefined
+readExpr = expr
+    where
+        expr = foldl1 Add <$> chain term (char '+')
+        term = foldl1 Mul <$> chain factor (char '*')
+        factor = Num <$> number <|> char '(' *> expr <* char ')' -- <|> Sin och cos och siffror
+
+number :: Parser Integer
+number = read <$> oneOrMore digit
