@@ -9,6 +9,7 @@ data Expr = Add Expr Expr
           | Cos Expr 
           | Num Double 
           | X 
+    deriving (Eq, Show)
 
 x :: Expr
 x = X
@@ -23,6 +24,22 @@ mul a b = Mul a b
 sin,cos :: Expr -> Expr
 sin a = Sin a
 cos a = Cos a 
+
+doubleParser = do
+    -- natural <- sat elem ['1'..'9']
+    -- nonNegative <- char '0' <|> natural
+    nonNegative <- sat elem ['0'..'9']
+    decimal <- char '.' 
+    double <- digit <*> decimal <*> nonNegative
+    return $ read double
+
+doubleParser = do
+    sign <- optional (char '-')
+    integral <- some digitChar <|> string "0"
+    fractional <- optional $ do
+        decimal <- char '.'
+        digits <- some digitChar
+        return (decimal : digits)
 
 -- Calculates the number of operations
 size :: Expr -> Int
@@ -54,11 +71,34 @@ eval (Cos a) c = P.cos (eval a c)
 
 -- this does something I don't yet know what it is
 readExpr :: String -> Maybe Expr
-readExpr = expr
+readExpr s = case parse expr s of
+    Just (a,"") -> Just a
+    _           -> Nothing
     where
         expr = foldl1 Add <$> chain term (char '+')
         term = foldl1 Mul <$> chain factor (char '*')
-        factor = Num <$> number <|> char '(' *> expr <* char ')' -- <|> Sin och cos och siffror
+        factor = Num <$> number <|> char '(' *> expr <* char ')' 
+             <|> siinn <|> cooss <|> xxx 
+          where
+            cooss = do
+                w <- (trig "cos" factor)
+                return $ Cos w
+            siinn = do
+                w <- trig "sin" factor
+                return $ Sin w
+            xxx = do
+                char 'x'
+                return x
 
-number :: Parser Integer
-number = read <$> oneOrMore digit
+
+trig :: String -> Parser Expr -> Parser Expr
+trig s t = foldl1 (*>) [char c | c <- s] *> t
+
+number :: Parser Double
+number =  read <$> oneOrMore digit
+
+prop_ShowReadExpr :: Expr -> Bool
+prop_ShowReadExpr = undefined
+
+arbExpr :: Int -> Gen Expr
+arbExpr = undefined
