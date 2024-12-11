@@ -5,7 +5,7 @@ import Data.Maybe
 import Data.Char
 
 import Parsing
-
+-- A
 data Expr = BinOp Op Expr Expr 
           | UnOp TrigOp Expr
           | Num Double 
@@ -37,6 +37,7 @@ size (Num a) = 0
 size (UnOp _ b) = 1 + size b
 size (BinOp _ b c) = 1 + size b + size c
 
+-- B
 -- Prints the expression (turns an expression to a String)
 showExpr :: Expr -> String
 showExpr (Num a)   = show a
@@ -54,6 +55,7 @@ showExpr (UnOp trigOperator expression) = case expression of
     X     -> show trigOperator ++ "x"
     _     -> show trigOperator ++ "(" ++ showExpr expression ++ ")"
 
+-- C
 -- Evaluates an expression given the expression and the variable X
 eval :: Expr -> Double -> Double
 eval (Num a) _ = a
@@ -65,6 +67,7 @@ eval (UnOp a b) c = case a of
     Sin -> P.sin (eval b c)
     Cos -> P.cos (eval b c)
 
+-- D
 -- -- Turns a String into an expression
 readExpr :: String -> Maybe Expr
 readExpr s = case parse expr $ filter (/=' ') $ toLower <$> s of
@@ -105,6 +108,7 @@ number = read <$> do
             smalls <- oneOrMore digit
             return (c:smalls)
 
+-- E
 -- Test that given an expression, which is put through our two functions
 -- showExpr and readExpr will produce the original input
 prop_ShowReadExpr :: Expr -> Bool
@@ -134,7 +138,9 @@ instance Arbitrary Expr where
 
 -- Examples
 -- (BinOp Mul (UnOp Sin (Num 0)) (BinOp Add (Num 3) (Num 3)))
+-- (BinOp Add (BinOp Mul (Num 1) (Num 0)) (x))
 
+-- F
 -- Simplifying expressions
 simplify :: Expr -> Expr
 simplify (Num a) = Num a
@@ -162,7 +168,7 @@ simplify (BinOp Mul (Num 1) e) = simplify e
 simplify (BinOp Mul X e) = (BinOp Mul x (simplify e))
 simplify (BinOp Mul e X) = (BinOp Mul (simplify e) x)
 
-simplify (BinOp oper e1 e2) = simplify $ BinOp oper (simplify e1) (simplify e2)
+simplify (BinOp oper a b) = simplify $ BinOp oper (simplify a) (simplify b)
 
 simplify (UnOp trig (Num a)) = case trig of
     Sin -> Num $ P.sin a
@@ -170,28 +176,26 @@ simplify (UnOp trig (Num a)) = case trig of
 simplify (UnOp trig X) = (UnOp trig X)
 simplify (UnOp t expr) = simplify $ UnOp t (simplify expr)
 
--- G
---Differentiate function an simplify
--- expression
--- simplifyAndDifferentiate :: Expr -> Expr
--- simplifyAndDifferentiate expr = simplify $ differentiate expr
+--Differentiate function and simplify expression
+simplifyAndDifferentiate :: Expr -> Expr
+simplifyAndDifferentiate expr = simplify $ differentiate expr
 
--- -- Differentiates an expression
--- differentiate :: Expr -> Expr
--- differentiate (Num _) = Num 0
--- differentiate Var = Num 1
+-- Differentiates an expression
+differentiate :: Expr -> Expr
+differentiate (Num _) = Num 0
+differentiate X = Num 1
 
--- differentiate (BinOp Mul Var Var) = BinOp Mul (Num 2) Var
+differentiate (BinOp Mul X X) = BinOp Mul (Num 2) X
 
--- differentiate (BinOp Add e1 e2) =
---     simplify $ BinOp Add (differentiate e1) (differentiate e2)
+differentiate (BinOp Add a b) =
+    simplify $ BinOp Add (differentiate a) (differentiate b)
 
--- differentiate (BinOp Mul e1 e2) =
---     simplify $ BinOp Add (BinOp Mul (differentiate e1) e2)
---         (BinOp Mul e1 (differentiate e2))
--- differentiate (UnOp Sin expr) = 
---     simplify $ BinOp Mul (differentiate expr) (UnOp Cos expr)
+differentiate (BinOp Mul a b) =
+    simplify $ BinOp Add (BinOp Mul (differentiate a) b)
+        (BinOp Mul a (differentiate b))
+differentiate (UnOp Sin expr) = 
+    simplify $ BinOp Mul (differentiate expr) (UnOp Cos expr)
 
--- differentiate (UnOp Cos e1) = 
---     simplify $ BinOp Mul (Num (-1)) 
---         (simplify $ BinOp Mul (differentiate e1) (UnOp Sin e1))
+differentiate (UnOp Cos a) = 
+    simplify $ BinOp Mul (Num (-1)) 
+        (simplify $ BinOp Mul (differentiate a) (UnOp Sin a))
