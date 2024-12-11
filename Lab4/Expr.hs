@@ -2,6 +2,7 @@ import Prelude hiding (sin,cos)
 import qualified Prelude as P
 import Test.QuickCheck
 import Data.Maybe
+import Data.Char
 
 import Parsing
 
@@ -66,7 +67,7 @@ eval (UnOp a b) c = case a of
 
 -- -- Turns a String into an expression
 readExpr :: String -> Maybe Expr
-readExpr s = case parse expr $ filter (/=' ') s of
+readExpr s = case parse expr $ filter (/=' ') $ toLower <$> s of
     Just (a,"") -> Just a
     _           -> Nothing
     where
@@ -88,6 +89,9 @@ readExpr s = case parse expr $ filter (/=' ') s of
 
 trig :: String -> Parser Expr -> Parser Expr
 trig s t = foldl1 (*>) [char c | c <- s] *> t
+
+-- charCaseInsensitive :: Char -> Parser Char
+-- charCaseInsensitive c = satisfy (\x -> toLower x == toLower c)
 
 -- Parser for a double
 number :: Parser Double
