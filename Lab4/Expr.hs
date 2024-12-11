@@ -1,3 +1,4 @@
+module Expr where
 import Prelude hiding (sin,cos)
 import qualified Prelude as P
 import Test.QuickCheck
