@@ -1,0 +1,1 @@
+Question "Is this person from Europe?" (Question "Is this person a scientist?" (Person "Marie Curie") (Question "is this person a politican?" (Person "maggie thatcher") (Person "Queen Elisabeth"))) (Question "Is this person an actor?" (Person "Marilyn Monroe") (Question "no" (Person "no") (Question "no" (Person "no") (Person "Hillary Clinton"))))
