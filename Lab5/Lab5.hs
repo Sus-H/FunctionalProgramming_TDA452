@@ -1,6 +1,7 @@
 -- This is the file for lab 5, a simlpe guessing game
 import Text.Read
 import System.IO.Error (tryIOError)
+import Data.Char
 
 data QA = Question String QA QA | Person String
     deriving (Read,Show)
@@ -18,12 +19,12 @@ main = do
                "I will guess what person you are thinking about!"
     qa <- getQA
     startGame qa
-    -- print newqaa
-    print "end of game"
+    print "End of game, thank you for playing!"
 
--- Tries to read a file and calles play to start a round with the correct QA
+-- Tries to read a file, if successful check that the contents of the file is 
+-- valid, if so, use that for the game, 
+-- otherwise returns and use the base case.
 getQA :: IO QA
--- getQA = return baseCase
 getQA = do
     fileContent <- tryIOError (readFile "questions.qa")
     case fileContent of 
@@ -32,7 +33,8 @@ getQA = do
             Just a -> return a
             _      -> return baseCase
 
--- Creates a loop where the user can play the game as many times as they want
+-- Creates a loop where the user can play the game as many times as they want,
+-- if they are done playing, call function that saves the new data
 startGame :: QA -> IO ()
 startGame qa = do
     newQa <- play qa
@@ -42,7 +44,7 @@ startGame qa = do
         "yes" -> startGame newQa
         "no"  -> exitGame newQa
 
--- should save the new QA (qa) in a file
+-- Function that save the new QA (qa) as a String in the file "questions.qa"
 exitGame:: QA -> IO ()
 exitGame qa = do
     writeFile "questions.qa" (show qa)
@@ -51,7 +53,8 @@ exitGame qa = do
 -- The function that handles the functionality of the game
 play :: QA -> IO QA
 -- The case of the play where the input is the edge case (a person)
--- where the computer will guess a person and the functionality will be handled
+-- where the computer will guess a person and the functionality 
+-- for that case is handled
 play (Person p) = do
     putStrLn $ "My guess: Is it " ++ show p ++ "?"
     input <- inputHandler
@@ -74,7 +77,7 @@ play (Person p) = do
 
 -- The case of the play where the input is a tree in the form of a QA
 play (Question q sub1 sub2) = do
-    print q
+    putStrLn q
     input <- inputHandler
     case input of 
         "yes" -> do
@@ -89,7 +92,8 @@ play (Question q sub1 sub2) = do
 inputHandler :: IO String
 inputHandler = do
     answer <- getLine
-    case answer of
+    let lowerAnswer = map toLower answer
+    case lowerAnswer of
         "yes" -> do
             return "yes"
         "no"  -> do
