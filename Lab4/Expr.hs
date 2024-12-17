@@ -4,6 +4,8 @@ import qualified Prelude as P
 import Test.QuickCheck
 import Data.Maybe
 import Data.Char
+import Data.List
+
 
 import Parsing
 -- A
@@ -99,15 +101,7 @@ trig s t = foldl1 (*>) [char c | c <- s] *> t
 
 -- Parser for a double
 number :: Parser Double
-number = read <$> do
-    ds   <- oneOrMore digit
-    rest <- decimals <|> return ""
-    return (ds ++ rest)
-    where
-        decimals = do 
-            c      <- char '.'
-            smalls <- oneOrMore digit
-            return (c:smalls)
+number = readsP 
 
 -- E
 -- Test that given an expression, which is put through our two functions
@@ -121,18 +115,19 @@ prop_ShowReadExpr ex = case c of
 
 -- Generate an expression of limited size
 arbExpr :: Int -> Gen Expr
-arbExpr n = frequency
-    [(20, Num <$> elements[0..10]), 
-     (15, do
-        a <- arbExpr (n `div` 2)
-        b <- arbExpr (n `div` 2)
-        op <- elements [Add, Mul]
-        return $ BinOp op a b),
-     (1, do
-        a <- arbExpr (n - 1)
-        trigOp <- elements [Sin, Cos]
-        return $ UnOp trigOp a),
-     (10, do return X)]
+arbExpr n | n <= 10 = frequency [(1, Num <$> elements[0..10]), (1, return X)]
+       | otherwise = frequency
+        [(2*n, Num <$> elements[0..10]), 
+        (n, do
+            a <- arbExpr (n `div` 2)
+            b <- arbExpr (n `div` 2)
+            op <- elements [Add, Mul]
+            return $ BinOp op a b),
+        (n `div` 2, do
+            a <- arbExpr (n - 1)
+            trigOp <- elements [Sin, Cos]
+            return $ UnOp trigOp a),
+        (2*n, do return X)]
 
 instance Arbitrary Expr where 
   arbitrary = sized arbExpr
@@ -157,6 +152,9 @@ simplify (BinOp oper (Num 0.0) e)     = case oper of
     Add -> simplify e
     Mul -> Num 0
 
+simplify (BinOp oper X X) = case oper of
+    Add -> (BinOp Mul (Num 2) X)
+    Mul -> (BinOp Mul X X)
 simplify (BinOp oper (Num a) X) = case oper of
     Add -> (BinOp Add (Num a) X)
     Mul -> (BinOp Mul (Num a) X)
@@ -169,13 +167,33 @@ simplify (BinOp Mul (Num 1) e) = simplify e
 simplify (BinOp Mul X e) = (BinOp Mul x (simplify e))
 simplify (BinOp Mul e X) = (BinOp Mul (simplify e) x)
 
-simplify (BinOp oper a b) = simplify $ BinOp oper (simplify a) (simplify b)
+simplify (BinOp oper a b) = 
+    let simplifiedA = simplify a
+        simplifiedB = simplify b
+    in case (oper, simplifiedA, simplifiedB) of
+        (Add, Num c, Num d) -> Num (c+d)
+        (Mul, Num c, Num d) -> Num (c*d)
+        _                   -> BinOp oper simplifiedA simplifiedB
 
 simplify (UnOp trig (Num a)) = case trig of
     Sin -> Num $ P.sin a
     Cos -> Num $ P.cos a
 simplify (UnOp trig X) = (UnOp trig X)
-simplify (UnOp t expr) = simplify $ UnOp t (simplify expr)
+simplify (UnOp t expr) = case simplify expr of
+    Num a -> case t of
+        Sin -> Num (P.sin a)
+        Cos -> Num (P.cos a)
+    simplifiedExpr -> UnOp t simplifiedExpr 
+
+prop_simplifyEval :: Expr -> Double -> Bool
+prop_simplifyEval a b = eval a b == eval (simplify a) b
+
+prop_simplifyJunk :: Expr -> Bool
+prop_simplifyJunk expr = noJunk $ simplify expr
+
+noJunk :: Expr -> Bool
+noJunk expr = not (all (isInfixOf (showExpr expr)) junks)
+    where junks = ["+0.0", "0.0+", "*0.0", "0.0*", "1*", "*1"]
 
 --Differentiate function and simplify expression
 simplifyAndDifferentiate :: Expr -> Expr
