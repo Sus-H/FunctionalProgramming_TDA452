@@ -37,6 +37,7 @@ cos a = UnOp Cos a
 -- Calculates the number of operations
 size :: Expr -> Int
 size (Num a) = 0
+size X       = 0
 size (UnOp _ b) = 1 + size b
 size (BinOp _ b c) = 1 + size b + size c
 
@@ -54,9 +55,9 @@ showExpr (BinOp c a b) = case c of
         showFactor (BinOp Add e e') = "(" ++ showExpr (BinOp Add e e')  ++ ")"
         showFactor e          = showExpr e
 showExpr (UnOp trigOperator expression) = case expression of
-    Num a -> show trigOperator ++ show a
-    X     -> show trigOperator ++ "x"
-    _     -> show trigOperator ++ "(" ++ showExpr expression ++ ")"
+    Num a -> map toLower (show trigOperator) ++ show a
+    X     -> map toLower (show trigOperator) ++ " x"
+    _  -> map toLower (show trigOperator) ++ "(" ++ showExpr expression ++ ")"
 
 -- C
 -- Evaluates an expression given the expression and the variable X
@@ -96,9 +97,6 @@ readExpr s = case parse expr $ filter (/=' ') $ toLower <$> s of
 trig :: String -> Parser Expr -> Parser Expr
 trig s t = foldl1 (*>) [char c | c <- s] *> t
 
--- charCaseInsensitive :: Char -> Parser Char
--- charCaseInsensitive c = satisfy (\x -> toLower x == toLower c)
-
 -- Parser for a double
 number :: Parser Double
 number = readsP 
@@ -107,17 +105,25 @@ number = readsP
 -- Test that given an expression, which is put through our two functions
 -- showExpr and readExpr will produce the original input
 prop_ShowReadExpr :: Expr -> Bool
-prop_ShowReadExpr ex = case c of 
-    Just _  -> True
+prop_ShowReadExpr ex = case c of
+    Just a  -> propHelp a == propHelp ex
     Nothing -> False
     where
         c = readExpr $ showExpr ex
 
+propHelp :: Expr -> Expr
+propHelp (Num a) = (Num a)
+propHelp X       = x
+propHelp (UnOp op a) = UnOp op (propHelp a)
+propHelp (BinOp op a (BinOp op2 b c)) | op == op2 =
+    propHelp (BinOp op (BinOp op (propHelp a) (propHelp b)) (propHelp c))
+propHelp (BinOp op a b) = BinOp op (propHelp a) (propHelp b)
+
 -- Generate an expression of limited size
 arbExpr :: Int -> Gen Expr
-arbExpr n | n <= 10 = frequency [(1, Num <$> elements[0..10]), (1, return X)]
+arbExpr n | n == 0 = frequency [(1, Num <$> arbitrary), (1, return X)]
        | otherwise = frequency
-        [(2*n, Num <$> elements[0..10]), 
+        [(5, Num <$> arbitrary),
         (n, do
             a <- arbExpr (n `div` 2)
             b <- arbExpr (n `div` 2)
@@ -127,7 +133,7 @@ arbExpr n | n <= 10 = frequency [(1, Num <$> elements[0..10]), (1, return X)]
             a <- arbExpr (n - 1)
             trigOp <- elements [Sin, Cos]
             return $ UnOp trigOp a),
-        (2*n, do return X)]
+        (5, do return X)]
 
 instance Arbitrary Expr where 
   arbitrary = sized arbExpr
@@ -152,6 +158,9 @@ simplify (BinOp oper (Num 0.0) e)     = case oper of
     Add -> simplify e
     Mul -> Num 0
 
+simplify (BinOp Mul e (Num 1.0)) = simplify e
+simplify (BinOp Mul (Num 1.0) e) = simplify e
+
 simplify (BinOp oper X X) = case oper of
     Add -> (BinOp Mul (Num 2) X)
     Mul -> (BinOp Mul X X)
@@ -162,8 +171,6 @@ simplify (BinOp oper X (Num a)) = case oper of
     Add -> (BinOp Add X (Num a))
     Mul -> (BinOp Mul X (Num a))
 
-simplify (BinOp Mul e (Num 1)) = simplify e
-simplify (BinOp Mul (Num 1) e) = simplify e
 simplify (BinOp Mul X e) = (BinOp Mul x (simplify e))
 simplify (BinOp Mul e X) = (BinOp Mul (simplify e) x)
 
@@ -189,11 +196,23 @@ prop_simplifyEval :: Expr -> Double -> Bool
 prop_simplifyEval a b = eval a b == eval (simplify a) b
 
 prop_simplifyJunk :: Expr -> Bool
-prop_simplifyJunk expr = noJunk $ simplify expr
+prop_simplifyJunk e = helperFunc simE && noJunk simE
+    where
+        simE = simplify e
+
+helperFunc (Num a) = True
+helperFunc X = True
+
+helperFunc (BinOp _ (Num a) (Num b)) = False
+helperFunc (BinOp op a b) = (helperFunc a) && (helperFunc b)
+
+helperFunc (UnOp _ (Num a)) = False
+helperFunc (UnOp _ X) = True
+helperFunc (UnOp op a) = helperFunc a
 
 noJunk :: Expr -> Bool
 noJunk expr = not (all (isInfixOf (showExpr expr)) junks)
-    where junks = ["+0.0", "0.0+", "*0.0", "0.0*", "1*", "*1"]
+    where junks = ["+0.0", "0.0+", "*0.0", "0.0*", "1.0*", "*1.0"]
 
 --Differentiate function and simplify expression
 simplifyAndDifferentiate :: Expr -> Expr
